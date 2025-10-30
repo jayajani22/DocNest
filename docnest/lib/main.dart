@@ -1,12 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:docnest/screens/splash_screen.dart';
 import 'package:docnest/screens/login_screen.dart';
 import 'package:docnest/screens/signup_screen.dart';
 import 'package:docnest/screens/dashboard_screen.dart';
+import 'package:docnest/screens/documents_screen.dart';
+import 'package:docnest/screens/notes_screen.dart';
+import 'package:docnest/screens/password_vault_screen.dart';
+import 'package:docnest/screens/profile_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:docnest/api/api_service.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await apiService.init();
   runApp(const MyApp());
 }
 
@@ -30,8 +36,6 @@ class MyApp extends StatelessWidget {
               Theme.of(context).textTheme,
             ),
             appBarTheme: const AppBarTheme(
-              // flexibleSpace is not a property of AppBarTheme anymore.
-              // The gradient background should be applied to the AppBar directly in the screens.
               backgroundColor: Colors.deepPurple,
             ),
             cardTheme: CardThemeData(
@@ -45,13 +49,22 @@ class MyApp extends StatelessWidget {
               unselectedItemColor: Colors.grey,
               showUnselectedLabels: true,
             ),
+            pageTransitionsTheme: const PageTransitionsTheme(
+              builders: {
+                TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+                TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+              },
+            ),
           ),
-          initialRoute: '/',
+          initialRoute: '/login',
           routes: {
-            '/': (context) => const SplashScreen(),
             '/login': (context) => const LoginScreen(),
             '/signup': (context) => const SignupScreen(),
             '/dashboard': (context) => const DashboardScreen(),
+            '/documents': (context) => const DocumentsScreen(),
+            '/notes': (context) => const NotesScreen(),
+            '/password-vault': (context) => const PasswordVaultScreen(),
+            '/profile': (context) => const ProfileScreen(),
           },
         );
       }

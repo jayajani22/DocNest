@@ -1,4 +1,4 @@
-
+import 'package:docnest/api/api_service.dart';
 import 'package:flutter/material.dart';
 import 'package:docnest/screens/documents_screen.dart';
 import 'package:docnest/screens/notes_screen.dart';
@@ -10,10 +10,10 @@ class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
 
   @override
-  _DashboardScreenState createState() => _DashboardScreenState();
+  DashboardScreenState createState() => DashboardScreenState();
 }
 
-class _DashboardScreenState extends State<DashboardScreen> {
+class DashboardScreenState extends State<DashboardScreen> {
   int _selectedIndex = 0;
 
   static const List<Widget> _widgetOptions = <Widget>[
@@ -29,23 +29,39 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
+  void _logout() async {
+    await apiService.logout();
+    if (!mounted) return;
+    // Navigate to login screen after logout
+    Navigator.of(context).pushReplacementNamed('/login');
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: AppBar(
+        title: const Text('Dashboard'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.logout),
+            onPressed: _logout,
+          ),
+        ],
+      ),
       body: Center(
         child: _widgetOptions.elementAt(_selectedIndex),
       ),
       floatingActionButton: FloatingActionButton(
         heroTag: 'dashboard_fab',
         onPressed: () {},
-        child: const Icon(Icons.add),
         backgroundColor: Colors.deepPurple,
+        child: const Icon(Icons.add),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 8.0,
-        child: Container(
+        child: SizedBox(
           height: 60.h,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
