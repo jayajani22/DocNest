@@ -15,9 +15,15 @@ Future<String?> _getToken() async {
 
 /// A service class for handling all API requests to the Django backend.
 class ApiService {
-  /// The base URL for the API.
-  /// IMPORTANT: Replace '192.168.129.188' with your actual local IPv4 address.
-  final String baseUrl = 'http://192.168.129.188:8000';
+  // --- Base URL Configuration ---
+  // Set this to `false` to use the LAN IP for testing on other devices.
+  static const bool _useLocalhost = true;
+
+  // The base URL for the API.
+  // Using kIsWeb to check if the app is running on the web.
+  final String baseUrl = _useLocalhost
+      ? "http://127.0.0.1:8000/api/"
+      : "http://192.168.129.188:8000/api/";
 
   String? _accessToken;
   String? _refreshToken;
@@ -66,7 +72,7 @@ class ApiService {
   Future<bool> _refreshAccessToken() async {
     if (_refreshToken == null) return false;
 
-    final url = Uri.parse('$baseUrl/api/token/refresh/');
+    final url = Uri.parse('${baseUrl}token/refresh/');
     final response = await http.post(
       url,
       headers: {'Content-Type': 'application/json'},
@@ -90,7 +96,7 @@ class ApiService {
   // --- 1. AUTHENTICATION ---
 
   Future<String> login(String username, String password) async {
-    final url = Uri.parse('$baseUrl/api/token/');
+    final url = Uri.parse('${baseUrl}token/');
     try {
       final response = await http.post(
         url,
@@ -117,13 +123,17 @@ class ApiService {
         print('Response body: ${response.body}');
         throw Exception('Server error: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
   Future<void> signup(String username, String password) async {
-    final url = Uri.parse('$baseUrl/api/signup/');
+    final url = Uri.parse('${baseUrl}signup/');
     try {
       final response = await http.post(
         url,
@@ -137,8 +147,12 @@ class ApiService {
         print('Response body: ${response.body}');
         throw Exception('Server error: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
@@ -154,7 +168,7 @@ class ApiService {
   // --- 2. DOCUMENTS ---
 
   Future<List<dynamic>> fetchDocuments() async {
-    final url = Uri.parse('$baseUrl/api/documents/');
+    final url = Uri.parse('${baseUrl}documents/');
     try {
       final res = await _sendRequest(() => http.get(url, headers: _headers));
       if (res.statusCode == 200) {
@@ -165,8 +179,12 @@ class ApiService {
         print('Response body: ${res.body}');
         throw Exception('Server error: ${res.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
@@ -179,7 +197,7 @@ class ApiService {
   }
 
   Future<void> deleteDocument(int id) async {
-    final url = Uri.parse('$baseUrl/api/documents/$id/');
+    final url = Uri.parse('${baseUrl}documents/$id/');
     try {
       final res = await _sendRequest(() => http.delete(url, headers: _headers));
       if (res.statusCode == 200 || res.statusCode == 204) {
@@ -189,14 +207,18 @@ class ApiService {
         print('Response body: ${res.body}');
         throw Exception('Server error: ${res.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
   Future<void> uploadDocument(
       String name, String fileName, Uint8List fileBytes) async {
-    final url = Uri.parse('$baseUrl/api/documents/');
+    final url = Uri.parse('${baseUrl}documents/');
     try {
       var request = http.MultipartRequest('POST', url);
       request.headers['Authorization'] = 'Bearer $_accessToken';
@@ -216,15 +238,19 @@ class ApiService {
         print('Response body: ${response.body}');
         throw Exception('Server error: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
   // --- 3. NOTES ---
 
   Future<List<dynamic>> fetchNotes() async {
-    final url = Uri.parse('$baseUrl/api/notes/');
+    final url = Uri.parse('${baseUrl}notes/');
     try {
       final res = await _sendRequest(() => http.get(url, headers: _headers));
       if (res.statusCode == 200) {
@@ -235,13 +261,17 @@ class ApiService {
         print('Response body: ${res.body}');
         throw Exception('Server error: ${res.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
   Future<void> addNote(String title, String content) async {
-    final url = Uri.parse('$baseUrl/api/notes/');
+    final url = Uri.parse('${baseUrl}notes/');
     try {
       final response = await _sendRequest(() => http.post(
         url,
@@ -255,13 +285,17 @@ class ApiService {
         print('Response body: ${response.body}');
         throw Exception('Server error: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
   Future<void> updateNote(int id, String title, String content) async {
-    final url = Uri.parse('$baseUrl/api/notes/$id/');
+    final url = Uri.parse('${baseUrl}notes/$id/');
     try {
       final response = await _sendRequest(() => http.put(
             url,
@@ -275,13 +309,17 @@ class ApiService {
         print('Response body: ${response.body}');
         throw Exception('Server error: ${response.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
   Future<void> deleteNote(int id) async {
-    final url = Uri.parse('$baseUrl/api/notes/$id/');
+    final url = Uri.parse('${baseUrl}notes/$id/');
     try {
       final res = await _sendRequest(() => http.delete(url, headers: _headers));
       if (res.statusCode == 204) {
@@ -291,8 +329,12 @@ class ApiService {
         print('Response body: ${res.body}');
         throw Exception('Server error: ${res.statusCode}');
       }
+    } on http.ClientException catch (e) {
+      print('ClientException: ${e.message}');
+      throw Exception('Failed to connect to the server. Please check your network connection and try again.');
     } catch (e) {
-      throw Exception('Connection failed: $e');
+      print('An unexpected error occurred: $e');
+      throw Exception('An unexpected error occurred: $e');
     }
   }
 
@@ -301,7 +343,7 @@ class ApiService {
   Future<Map<String, dynamic>> fetchUserSummary() async {
     final token = await _getToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/api/summary/'),
+      Uri.parse('${baseUrl}summary/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -318,7 +360,7 @@ class ApiService {
   Future<List<dynamic>> fetchPasswords() async {
     final token = await _getToken();
     final response = await http.get(
-      Uri.parse('$baseUrl/api/passwords/'),
+      Uri.parse('${baseUrl}passwords/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -336,7 +378,7 @@ class ApiService {
   Future<void> addPassword(Map<String, dynamic> data) async {
     final token = await _getToken();
     await http.post(
-      Uri.parse('$baseUrl/api/passwords/'),
+      Uri.parse('${baseUrl}passwords/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -348,7 +390,7 @@ class ApiService {
   Future<void> updatePassword(int id, Map<String, dynamic> data) async {
     final token = await _getToken();
     final response = await http.put(
-      Uri.parse('$baseUrl/api/passwords/$id/'),
+      Uri.parse('${baseUrl}passwords/$id/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
@@ -364,7 +406,7 @@ class ApiService {
   Future<void> deletePassword(int id) async {
     final token = await _getToken();
     await http.delete(
-      Uri.parse('$baseUrl/api/passwords/$id/'),
+      Uri.parse('${baseUrl}passwords/$id/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',
