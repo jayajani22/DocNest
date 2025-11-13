@@ -1,5 +1,4 @@
 import 'package:docnest/api/api_service.dart';
-import 'package:docnest/widgets/gradient_app_bar_with_search.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -12,10 +11,8 @@ class NotesScreen extends StatefulWidget {
 }
 
 class NotesScreenState extends State<NotesScreen> {
-  List<dynamic> _notes = [];
-  List<dynamic> _filteredNotes = [];
-  bool _isLoading = true;
-  String _searchQuery = '';
+  late Future<List<dynamic>> _notesFuture;
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -25,34 +22,7 @@ class NotesScreenState extends State<NotesScreen> {
 
   Future<void> _loadNotes() async {
     setState(() {
-      _isLoading = true;
-    });
-    try {
-      final notes = await apiService.fetchNotes();
-      setState(() {
-        _notes = notes;
-        _filteredNotes = notes;
-        _isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        _isLoading = false;
-      });
-      // Handle error
-    }
-  }
-
-  void _filterNotes(String query) {
-    final filtered = _notes.where((note) {
-      final title = note['title']?.toString().toLowerCase() ?? '';
-      final content = note['content']?.toString().toLowerCase() ?? '';
-      return title.contains(query.toLowerCase()) ||
-          content.contains(query.toLowerCase());
-    }).toList();
-
-    setState(() {
-      _searchQuery = query;
-      _filteredNotes = filtered;
+      _notesFuture = apiService.fetchNotes();
     });
   }
 
@@ -63,8 +33,7 @@ class NotesScreenState extends State<NotesScreen> {
         final titleController = TextEditingController();
         final contentController = TextEditingController();
         return Dialog(
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
           child: Container(
             padding: EdgeInsets.all(24.w),
             child: Column(
@@ -138,8 +107,7 @@ class NotesScreenState extends State<NotesScreen> {
                     SizedBox(width: 8.w),
                     ElevatedButton(
                       onPressed: () {
-                        if (titleController.text.isNotEmpty ||
-                            contentController.text.isNotEmpty) {
+                        if (titleController.text.isNotEmpty || contentController.text.isNotEmpty) {
                           Navigator.of(context).pop({
                             'title': titleController.text,
                             'content': contentController.text,
@@ -324,11 +292,6 @@ class NotesScreenState extends State<NotesScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF9F7FB),
-      appBar: GradientAppBarWithSearch(
-        title: 'Notes',
-        onSearchChanged: _filterNotes,
-      ),
       body: _isLoading
           ? Center(
               child: CircularProgressIndicator(
@@ -340,64 +303,128 @@ class NotesScreenState extends State<NotesScreen> {
           : RefreshIndicator(
               onRefresh: _loadNotes,
               color: Colors.deepPurple.shade600,
-              child: _filteredNotes.isEmpty
-                  ? Center(
+              child: FutureBuilder<List<dynamic>>(
+                future: _notesFuture,
+                builder: (context, snapshot) {
+                  if (snapshot.connectionState == ConnectionState.waiting) {
+                    return Center(
+                      child: CircularProgressIndicator(
+                        valueColor: AlwaysStoppedAnimation<Color>(
+                          Colors.deepPurple.shade600,
+                        ),
+                      ),
+                    );
+                  } else if (snapshot.hasError) {
+                    return Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            padding: EdgeInsets.all(32.w),
-                            decoration: BoxDecoration(
-                              color: Colors.amber.shade50,
-                              shape: BoxShape.circle,
-                            ),
-                            child: Icon(
-                              Icons.note_outlined,
-                              size: 64.sp,
-                              color: Colors.amber.shade300,
-                            ),
+                          Icon(
+                            Icons.error_outline,
+                            size: 64.sp,
+                            color: Colors.red.shade300,
                           ),
-                          SizedBox(height: 24.h),
+                          SizedBox(height: 16.h),
                           Text(
-                            _searchQuery.isEmpty
-                                ? 'No Notes Yet'
-                                : 'No Notes Found',
+                            'Error loading notes',
                             style: GoogleFonts.poppins(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.bold,
+                              fontSize: 18.sp,
+                              fontWeight: FontWeight.w600,
                               color: Colors.grey.shade700,
                             ),
                           ),
                           SizedBox(height: 8.h),
                           Text(
-                            _searchQuery.isEmpty
-                                ? 'Create your first note to get started'
-                                : 'Try a different keyword',
+                            '${snapshot.error}',
                             style: GoogleFonts.inter(
                               fontSize: 14.sp,
                               color: Colors.grey.shade600,
                             ),
+                            textAlign: TextAlign.center,
+                          ),
+                          SizedBox(height: 24.h),
+                          ElevatedButton.icon(
+                            onPressed: _loadNotes,
+                            icon: const Icon(Icons.refresh),
+                            label: Text(
+                              'Retry',
+                              style: GoogleFonts.inter(),
+                            ),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.deepPurple.shade600,
+                              foregroundColor: Colors.white,
+                              padding: EdgeInsets.symmetric(
+                                horizontal: 24.w,
+                                vertical: 12.h,
+                              ),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    )
-                  : ListView.builder(
+                    );
+                  } else {
+                    final notes = snapshot.data!;
+                    if (notes.isEmpty) {
+                      return Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: EdgeInsets.all(32.w),
+                              decoration: BoxDecoration(
+                                color: Colors.amber.shade50,
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.note_outlined,
+                                size: 64.sp,
+                                color: Colors.amber.shade300,
+                              ),
+                            ),
+                            SizedBox(height: 24.h),
+                            Text(
+                              'No Notes Yet',
+                              style: GoogleFonts.poppins(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.grey.shade700,
+                              ),
+                            ),
+                            SizedBox(height: 8.h),
+                            Text(
+                              'Create your first note to get started',
+                              style: GoogleFonts.inter(
+                                fontSize: 14.sp,
+                                color: Colors.grey.shade600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+                    }
+                    return ListView.builder(
                       padding: EdgeInsets.all(16.w),
-                      itemCount: _filteredNotes.length,
+                      itemCount: notes.length,
                       itemBuilder: (context, index) {
-                        final note = _filteredNotes[index];
+                        final note = notes[index];
                         return NoteCard(
                           note: note,
                           onDelete: () => _deleteNote(note['id']),
                           onSave: _loadNotes,
                         );
                       },
-                    ),
+                    );
+                  }
+                },
+              ),
             ),
       floatingActionButton: FloatingActionButton.extended(
         heroTag: 'notes_fab',
         onPressed: _addNote,
-        backgroundColor: const Color(0xFF6A11CB),
+        backgroundColor: Colors.deepPurple.shade600,
         icon: const Icon(Icons.add, color: Colors.white),
         label: Text(
           'New Note',
@@ -416,12 +443,7 @@ class NoteCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onSave;
 
-  const NoteCard(
-      {Key? key,
-      required this.note,
-      required this.onDelete,
-      required this.onSave})
-      : super(key: key);
+  const NoteCard({Key? key, required this.note, required this.onDelete, required this.onSave}) : super(key: key);
 
   @override
   _NoteCardState createState() => _NoteCardState();
@@ -448,8 +470,7 @@ class _NoteCardState extends State<NoteCard> {
 
   void _updateNote() async {
     try {
-      await apiService.updateNote(
-          widget.note['id'], _titleController.text, _contentController.text);
+      await apiService.updateNote(widget.note['id'], _titleController.text, _contentController.text);
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

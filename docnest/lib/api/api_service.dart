@@ -132,13 +132,13 @@ class ApiService {
     }
   }
 
-  Future<void> signup(String username, String password) async {
+  Future<void> signup(String username, String email, String password) async {
     final url = Uri.parse('${baseUrl}signup/');
     try {
       final response = await http.post(
         url,
         headers: {'Content-Type': 'application/json; charset=UTF-8'},
-        body: jsonEncode({'username': username, 'password': password}),
+        body: jsonEncode({'username': username, 'email': email, 'password': password}),
       );
       if (response.statusCode == 201) {
         return;
@@ -343,7 +343,7 @@ class ApiService {
   Future<Map<String, dynamic>> fetchUserSummary() async {
     final token = await _getToken();
     final response = await http.get(
-      Uri.parse('${baseUrl}summary/'),
+      Uri.parse('${baseUrl}users/profile/'),
       headers: {
         'Authorization': 'Bearer $token',
         'Content-Type': 'application/json',

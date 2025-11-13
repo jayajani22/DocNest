@@ -1,6 +1,8 @@
-
 import 'package:docnest/api/api_service.dart';
+import 'package:docnest/widgets/gradient_app_bar_with_search.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class PasswordVaultScreen extends StatefulWidget {
   const PasswordVaultScreen({Key? key}) : super(key: key);
@@ -10,8 +12,10 @@ class PasswordVaultScreen extends StatefulWidget {
 }
 
 class PasswordVaultScreenState extends State<PasswordVaultScreen> {
-  late Future<List<dynamic>> _passwordsFuture;
-  bool _isLoading = false;
+  List<dynamic> _passwords = [];
+  List<dynamic> _filteredPasswords = [];
+  bool _isLoading = true;
+  String _searchQuery = '';
 
   @override
   void initState() {
@@ -21,13 +25,32 @@ class PasswordVaultScreenState extends State<PasswordVaultScreen> {
 
   Future<void> _loadPasswords() async {
     setState(() {
-      _passwordsFuture = apiService.fetchPasswords().then((data) => data ?? []);
+      _isLoading = true;
     });
+    try {
+      final passwords = await apiService.fetchPasswords();
+      setState(() {
+        _passwords = passwords ?? [];
+        _filteredPasswords = _passwords;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      // Handle error
+    }
   }
 
-  Future<void> _refreshPasswords() async {
+  void _filterPasswords(String query) {
+    final filtered = _passwords.where((password) {
+      final siteName = password['site_name']?.toString().toLowerCase() ?? '';
+      return siteName.contains(query.toLowerCase());
+    }).toList();
+
     setState(() {
-      _passwordsFuture = apiService.fetchPasswords().then((data) => data ?? []);
+      _searchQuery = query;
+      _filteredPasswords = filtered;
     });
   }
 
@@ -38,42 +61,167 @@ class PasswordVaultScreenState extends State<PasswordVaultScreen> {
         final siteController = TextEditingController();
         final usernameController = TextEditingController();
         final passwordController = TextEditingController();
-        return AlertDialog(
-          title: const Text('Add Password'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(
-                controller: siteController,
-                decoration: const InputDecoration(labelText: 'Site'),
+        bool isPasswordVisible = false;
+        return StatefulBuilder(
+          builder: (context, setState) => Dialog(
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+            child: Container(
+              padding: EdgeInsets.all(24.w),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Row(
+                    children: [
+                      Container(
+                        padding: EdgeInsets.all(8.w),
+                        decoration: BoxDecoration(
+                          color: Colors.red.shade50,
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Icon(
+                          Icons.lock,
+                          color: Colors.red.shade600,
+                          size: 24.sp,
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        'Add Password',
+                        style: GoogleFonts.poppins(
+                          fontSize: 22.sp,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey.shade800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 24.h),
+                  TextField(
+                    controller: siteController,
+                    style: GoogleFonts.inter(),
+                    decoration: InputDecoration(
+                      labelText: 'Site Name',
+                      labelStyle: GoogleFonts.inter(),
+                      prefixIcon: Icon(Icons.language,
+                          color: Colors.deepPurple.shade300),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Colors.deepPurple.shade400,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  TextField(
+                    controller: usernameController,
+                    style: GoogleFonts.inter(),
+                    decoration: InputDecoration(
+                      labelText: 'Username',
+                      labelStyle: GoogleFonts.inter(),
+                      prefixIcon:
+                          Icon(Icons.person, color: Colors.deepPurple.shade300),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Colors.deepPurple.shade400,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 16.h),
+                  TextField(
+                    controller: passwordController,
+                    obscureText: !isPasswordVisible,
+                    style: GoogleFonts.inter(),
+                    decoration: InputDecoration(
+                      labelText: 'Password',
+                      labelStyle: GoogleFonts.inter(),
+                      prefixIcon: Icon(Icons.lock_outline,
+                          color: Colors.deepPurple.shade300),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          isPasswordVisible
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.grey.shade600,
+                        ),
+                        onPressed: () => setState(() {
+                          isPasswordVisible = !isPasswordVisible;
+                        }),
+                      ),
+                      filled: true,
+                      fillColor: Colors.grey.shade50,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide.none,
+                      ),
+                      focusedBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12.r),
+                        borderSide: BorderSide(
+                          color: Colors.deepPurple.shade400,
+                          width: 2,
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(height: 24.h),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        child: Text(
+                          'Cancel',
+                          style: GoogleFonts.inter(color: Colors.grey.shade600),
+                        ),
+                      ),
+                      SizedBox(width: 8.w),
+                      ElevatedButton(
+                        onPressed: () {
+                          if (siteController.text.isNotEmpty &&
+                              passwordController.text.isNotEmpty) {
+                            Navigator.of(context).pop({
+                              'site_name': siteController.text,
+                              'username': usernameController.text,
+                              'password': passwordController.text,
+                            });
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.deepPurple.shade600,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                        ),
+                        child: Text(
+                          'Add',
+                          style: GoogleFonts.inter(),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              TextField(
-                controller: usernameController,
-                decoration: const InputDecoration(labelText: 'Username'),
-              ),
-              TextField(
-                controller: passwordController,
-                decoration: const InputDecoration(labelText: 'Password'),
-                obscureText: true,
-              ),
-            ],
+            ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop({
-                  'site_name': siteController.text,
-                  'username': usernameController.text,
-                  'password': passwordController.text,
-                });
-              },
-              child: const Text('Add'),
-            ),
-          ],
         );
       },
     );
@@ -81,19 +229,95 @@ class PasswordVaultScreenState extends State<PasswordVaultScreen> {
     if (result != null) {
       try {
         await apiService.addPassword(result);
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Password added successfully')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 12.w),
+                Text(
+                  'Password added successfully',
+                  style: GoogleFonts.inter(),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.green,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
         );
         await _loadPasswords(); // refresh list safely
       } catch (e) {
+        if (!mounted) return;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: $e')),
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white),
+                SizedBox(width: 12.w),
+                Expanded(
+                  child: Text(
+                    'Error: $e',
+                    style: GoogleFonts.inter(),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: Colors.red.shade400,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
         );
       }
     }
   }
 
   void _deletePassword(int id) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape:
+            RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Text(
+          'Delete Password',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to delete this password?',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: Colors.grey.shade600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade600,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
     setState(() {
       _isLoading = true;
     });
@@ -102,12 +326,46 @@ class PasswordVaultScreenState extends State<PasswordVaultScreen> {
       await _loadPasswords(); // Refresh passwords after deleting
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Password deleted successfully')),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.check_circle, color: Colors.white),
+              SizedBox(width: 12.w),
+              Text(
+                'Password deleted successfully',
+                style: GoogleFonts.inter(),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.toString())),
+        SnackBar(
+          content: Row(
+            children: [
+              const Icon(Icons.error_outline, color: Colors.white),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  e.toString(),
+                  style: GoogleFonts.inter(),
+                ),
+              ),
+            ],
+          ),
+          backgroundColor: Colors.red.shade400,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+        ),
       );
     } finally {
       setState(() {
@@ -117,75 +375,223 @@ class PasswordVaultScreenState extends State<PasswordVaultScreen> {
   }
 
   void _showEditDialog(Map<String, dynamic> password) {
-    final siteNameController = TextEditingController(text: password['site_name']);
-    final usernameController = TextEditingController(text: password['username']);
-    final passwordController = TextEditingController(text: password['password']);
+    final siteNameController =
+        TextEditingController(text: password['site_name']);
+    final usernameController =
+        TextEditingController(text: password['username']);
+    final passwordController =
+        TextEditingController(text: password['password']);
     bool isPasswordVisible = false;
 
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: const Text('Edit Password'),
-          content: SingleChildScrollView(
+        builder: (context, setState) => Dialog(
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20.r)),
+          child: Container(
+            padding: EdgeInsets.all(24.w),
             child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
+                Row(
+                  children: [
+                    Container(
+                      padding: EdgeInsets.all(8.w),
+                      decoration: BoxDecoration(
+                        color: Colors.red.shade50,
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Icon(
+                        Icons.lock,
+                        color: Colors.red.shade600,
+                        size: 24.sp,
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      'Edit Password',
+                      style: GoogleFonts.poppins(
+                        fontSize: 22.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.grey.shade800,
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 24.h),
                 TextField(
                   controller: siteNameController,
-                  decoration: const InputDecoration(labelText: 'Site Name'),
+                  style: GoogleFonts.inter(),
+                  decoration: InputDecoration(
+                    labelText: 'Site Name',
+                    labelStyle: GoogleFonts.inter(),
+                    prefixIcon: Icon(Icons.language,
+                        color: Colors.deepPurple.shade300),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(
+                        color: Colors.deepPurple.shade400,
+                        width: 2,
+                      ),
+                    ),
+                  ),
                 ),
+                SizedBox(height: 16.h),
                 TextField(
                   controller: usernameController,
-                  decoration: const InputDecoration(labelText: 'Username'),
+                  style: GoogleFonts.inter(),
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    labelStyle: GoogleFonts.inter(),
+                    prefixIcon:
+                        Icon(Icons.person, color: Colors.deepPurple.shade300),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(
+                        color: Colors.deepPurple.shade400,
+                        width: 2,
+                      ),
+                    ),
+                  ),
                 ),
+                SizedBox(height: 16.h),
                 TextField(
                   controller: passwordController,
                   obscureText: !isPasswordVisible,
+                  style: GoogleFonts.inter(),
                   decoration: InputDecoration(
                     labelText: 'Password',
+                    labelStyle: GoogleFonts.inter(),
+                    prefixIcon: Icon(Icons.lock_outline,
+                        color: Colors.deepPurple.shade300),
                     suffixIcon: IconButton(
                       icon: Icon(
-                        isPasswordVisible ? Icons.visibility_off : Icons.visibility,
-                        color: Colors.deepPurple,
+                        isPasswordVisible
+                            ? Icons.visibility_off
+                            : Icons.visibility,
+                        color: Colors.grey.shade600,
                       ),
                       onPressed: () => setState(() {
                         isPasswordVisible = !isPasswordVisible;
                       }),
                     ),
+                    filled: true,
+                    fillColor: Colors.grey.shade50,
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12.r),
+                      borderSide: BorderSide(
+                        color: Colors.deepPurple.shade400,
+                        width: 2,
+                      ),
+                    ),
                   ),
+                ),
+                SizedBox(height: 24.h),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(
+                        'Cancel',
+                        style: GoogleFonts.inter(color: Colors.grey.shade600),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    ElevatedButton(
+                      onPressed: () async {
+                        final updatedData = {
+                          "site_name": siteNameController.text,
+                          "username": usernameController.text,
+                          "password": passwordController.text,
+                        };
+                        try {
+                          await apiService.updatePassword(
+                              password['id'], updatedData);
+                          Navigator.pop(context);
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.check_circle,
+                                      color: Colors.white),
+                                  SizedBox(width: 12.w),
+                                  Text(
+                                    'Password updated successfully!',
+                                    style: GoogleFonts.inter(),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: Colors.green,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                          );
+                          _loadPasswords(); // reload updated data
+                        } catch (e) {
+                          if (!mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Row(
+                                children: [
+                                  const Icon(Icons.error_outline,
+                                      color: Colors.white),
+                                  SizedBox(width: 12.w),
+                                  Expanded(
+                                    child: Text(
+                                      'Error updating password: $e',
+                                      style: GoogleFonts.inter(),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              backgroundColor: Colors.red.shade400,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10.r),
+                              ),
+                            ),
+                          );
+                        }
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.deepPurple.shade600,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                      ),
+                      child: Text(
+                        'Save',
+                        style: GoogleFonts.inter(),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancel'),
-            ),
-            ElevatedButton(
-              onPressed: () async {
-                final updatedData = {
-                  "site_name": siteNameController.text,
-                  "username": usernameController.text,
-                  "password": passwordController.text,
-                };
-                try {
-                  await apiService.updatePassword(password['id'], updatedData);
-                  Navigator.pop(context);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Password updated successfully!')),
-                  );
-                  _refreshPasswords(); // reload updated data
-                } catch (e) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error updating password: $e')),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(backgroundColor: Colors.deepPurple),
-              child: const Text('Save'),
-            ),
-          ],
         ),
       ),
     );
@@ -194,43 +600,88 @@ class PasswordVaultScreenState extends State<PasswordVaultScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Password Vault'),
+      backgroundColor: const Color(0xFFF9F7FB),
+      appBar: GradientAppBarWithSearch(
+        title: 'Password Vault',
+        onSearchChanged: _filterPasswords,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : FutureBuilder<List<dynamic>>(
-              future: _passwordsFuture,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator());
-                } else if (snapshot.hasError) {
-                  return Center(child: Text('Error: ${snapshot.error}'));
-                } else if (snapshot.hasData) {
-                  final passwords = snapshot.data!;
-                  if (passwords.isEmpty) {
-                    return const Center(child: Text('No passwords found.'));
-                  }
-                  return ListView.builder(
-                    itemCount: passwords.length,
-                    itemBuilder: (context, index) {
-                      final password = passwords[index];
-                      return PasswordCard(
-                        password: password,
-                        onDelete: () => _deletePassword(password['id']!),
-                        onEdit: () => _showEditDialog(password),
-                      );
-                    },
-                  );
-                } else {
-                  return const Center(child: Text('No passwords found.'));
-                }
-              },
+          ? Center(
+              child: CircularProgressIndicator(
+                valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.deepPurple.shade600,
+                ),
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: _loadPasswords,
+              color: Colors.deepPurple.shade600,
+              child: _filteredPasswords.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: EdgeInsets.all(32.w),
+                            decoration: BoxDecoration(
+                              color: Colors.red.shade50,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(
+                              Icons.lock_outline,
+                              size: 64.sp,
+                              color: Colors.red.shade300,
+                            ),
+                          ),
+                          SizedBox(height: 24.h),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? 'No Passwords Yet'
+                                : 'No Passwords Found',
+                            style: GoogleFonts.poppins(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.grey.shade700,
+                            ),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            _searchQuery.isEmpty
+                                ? 'Add your first password to get started'
+                                : 'Try a different keyword',
+                            style: GoogleFonts.inter(
+                              fontSize: 14.sp,
+                              color: Colors.grey.shade600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    )
+                  : ListView.builder(
+                      padding: EdgeInsets.all(16.w),
+                      itemCount: _filteredPasswords.length,
+                      itemBuilder: (context, index) {
+                        final password = _filteredPasswords[index];
+                        return PasswordCard(
+                          password: password,
+                          onDelete: () => _deletePassword(password['id']!),
+                          onEdit: () => _showEditDialog(password),
+                        );
+                      },
+                    ),
             ),
-      floatingActionButton: FloatingActionButton(
+      floatingActionButton: FloatingActionButton.extended(
         heroTag: 'passwords_fab',
         onPressed: _addPassword,
-        child: const Icon(Icons.add),
+        backgroundColor: const Color(0xFF6A11CB),
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: Text(
+          'Add Password',
+          style: GoogleFonts.inter(
+            color: Colors.white,
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }
@@ -241,7 +692,12 @@ class PasswordCard extends StatefulWidget {
   final VoidCallback onDelete;
   final VoidCallback onEdit;
 
-  const PasswordCard({Key? key, required this.password, required this.onDelete, required this.onEdit}) : super(key: key);
+  const PasswordCard(
+      {Key? key,
+      required this.password,
+      required this.onDelete,
+      required this.onEdit})
+      : super(key: key);
 
   @override
   _PasswordCardState createState() => _PasswordCardState();
@@ -256,27 +712,99 @@ class _PasswordCardState extends State<PasswordCard> {
     final username = widget.password['username'] ?? 'No Username';
     final password = widget.password['password'] ?? '';
 
-    return Card(
-      margin: const EdgeInsets.all(8.0),
+    return Container(
+      margin: EdgeInsets.only(bottom: 12.h),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(8.0),
+        padding: EdgeInsets.all(16.w),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(siteName, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8.0),
-            Text('Username: $username'),
-            const SizedBox(height: 8.0),
             Row(
               children: [
+                Container(
+                  padding: EdgeInsets.all(10.w),
+                  decoration: BoxDecoration(
+                    color: Colors.red.shade50,
+                    borderRadius: BorderRadius.circular(10.r),
+                  ),
+                  child: Icon(
+                    Icons.lock,
+                    color: Colors.red.shade600,
+                    size: 24.sp,
+                  ),
+                ),
+                SizedBox(width: 12.w),
                 Expanded(
                   child: Text(
-                    'Password: ${_isPasswordVisible ? password : '********'}',
+                    siteName,
+                    style: GoogleFonts.poppins(
+                      fontSize: 18.sp,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey.shade800,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 16.h),
+            Row(
+              children: [
+                Icon(
+                  Icons.person_outline,
+                  size: 18.sp,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    username,
+                    style: GoogleFonts.inter(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 12.h),
+            Row(
+              children: [
+                Icon(
+                  Icons.lock_outline,
+                  size: 18.sp,
+                  color: Colors.grey.shade600,
+                ),
+                SizedBox(width: 8.w),
+                Expanded(
+                  child: Text(
+                    _isPasswordVisible ? password : '••••••••',
+                    style: GoogleFonts.inter(
+                      fontSize: 14.sp,
+                      color: Colors.grey.shade700,
+                      fontFeatures: [
+                        const FontFeature.tabularFigures(),
+                      ],
+                    ),
                   ),
                 ),
                 IconButton(
                   icon: Icon(
-                    _isPasswordVisible ? Icons.visibility_off : Icons.visibility,
+                    _isPasswordVisible
+                        ? Icons.visibility_off
+                        : Icons.visibility,
+                    color: Colors.grey.shade600,
+                    size: 20.sp,
                   ),
                   onPressed: () {
                     setState(() {
@@ -286,16 +814,34 @@ class _PasswordCardState extends State<PasswordCard> {
                 ),
               ],
             ),
+            SizedBox(height: 16.h),
+            Divider(color: Colors.grey.shade200),
+            SizedBox(height: 8.h),
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: const Icon(Icons.edit),
+                TextButton.icon(
                   onPressed: widget.onEdit,
+                  icon: Icon(Icons.edit_outlined, size: 18.sp),
+                  label: Text(
+                    'Edit',
+                    style: GoogleFonts.inter(),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.deepPurple.shade600,
+                  ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.delete),
+                SizedBox(width: 8.w),
+                TextButton.icon(
                   onPressed: widget.onDelete,
+                  icon: Icon(Icons.delete_outline, size: 18.sp),
+                  label: Text(
+                    'Delete',
+                    style: GoogleFonts.inter(),
+                  ),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.red.shade600,
+                  ),
                 ),
               ],
             ),

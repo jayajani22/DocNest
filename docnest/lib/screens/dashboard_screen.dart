@@ -5,6 +5,7 @@ import 'package:docnest/screens/notes_screen.dart';
 import 'package:docnest/screens/password_vault_screen.dart';
 import 'package:docnest/screens/profile_screen.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({Key? key}) : super(key: key);
@@ -23,6 +24,13 @@ class DashboardScreenState extends State<DashboardScreen> {
     ProfileScreen(),
   ];
 
+  static const List<String> _titles = [
+    'Documents',
+    'Notes',
+    'Password Vault',
+    'Profile',
+  ];
+
   void _onItemTapped(int index) {
     setState(() {
       _selectedIndex = index;
@@ -30,65 +38,125 @@ class DashboardScreenState extends State<DashboardScreen> {
   }
 
   void _logout() async {
-    await apiService.logout();
-    if (!mounted) return;
-    // Navigate to login screen after logout
-    Navigator.of(context).pushReplacementNamed('/login');
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16.r)),
+        title: Text(
+          'Logout',
+          style: GoogleFonts.poppins(fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Are you sure you want to logout?',
+          style: GoogleFonts.inter(),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(
+              'Cancel',
+              style: GoogleFonts.inter(color: Colors.grey.shade600),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.deepPurple.shade600,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              'Logout',
+              style: GoogleFonts.inter(color: Colors.white),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      await apiService.logout();
+      if (!mounted) return;
+      Navigator.of(context).pushReplacementNamed('/login');
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Dashboard'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout),
-            onPressed: _logout,
+      body: _widgetOptions.elementAt(_selectedIndex),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.1),
+              blurRadius: 10,
+              offset: const Offset(0, -2),
+            ),
+          ],
+        ),
+        child: BottomAppBar(
+          shape: const CircularNotchedRectangle(),
+          notchMargin: 8.0,
+          color: Colors.white,
+          child: SizedBox(
+            height: 65.h,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceAround,
+              children: <Widget>[
+                _buildNavItem(Icons.description, 'Documents', 0),
+                _buildNavItem(Icons.note, 'Notes', 1),
+                const SizedBox(width: 40), // The space for the FAB
+                _buildNavItem(Icons.lock, 'Vault', 2),
+                _buildNavItem(Icons.person, 'Profile', 3),
+              ],
+            ),
           ),
-        ],
+        ),
       ),
-      body: Center(
-        child: _widgetOptions.elementAt(_selectedIndex),
-      ),
-      floatingActionButton: FloatingActionButton(
-        heroTag: 'dashboard_fab',
-        onPressed: () {},
-        backgroundColor: Colors.deepPurple,
-        child: const Icon(Icons.add),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 8.0,
-        child: SizedBox(
-          height: 60.h,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
-            children: <Widget>[
-              IconButton(
-                icon: const Icon(Icons.description),
-                onPressed: () => _onItemTapped(0),
-                color: _selectedIndex == 0 ? Colors.deepPurple : Colors.grey,
+    );
+  }
+
+  Widget _buildNavItem(IconData icon, String label, int index) {
+    final isSelected = _selectedIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => _onItemTapped(index),
+        borderRadius: BorderRadius.circular(12.r),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 200),
+              padding: EdgeInsets.all(8.w),
+              decoration: BoxDecoration(
+                color: isSelected
+                    ? Colors.deepPurple.shade50
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(12.r),
               ),
-              IconButton(
-                icon: const Icon(Icons.note),
-                onPressed: () => _onItemTapped(1),
-                color: _selectedIndex == 1 ? Colors.deepPurple : Colors.grey,
+              child: Icon(
+                icon,
+                color: isSelected
+                    ? Colors.deepPurple.shade600
+                    : Colors.grey.shade400,
+                size: 24.sp,
               ),
-              const SizedBox(width: 40), // The space for the FAB
-              IconButton(
-                icon: const Icon(Icons.lock),
-                onPressed: () => _onItemTapped(2),
-                color: _selectedIndex == 2 ? Colors.deepPurple : Colors.grey,
+            ),
+            SizedBox(height: 4.h),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 11.sp,
+                color: isSelected
+                    ? Colors.deepPurple.shade600
+                    : Colors.grey.shade400,
+                fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
               ),
-              IconButton(
-                icon: const Icon(Icons.person),
-                onPressed: () => _onItemTapped(3),
-                color: _selectedIndex == 3 ? Colors.deepPurple : Colors.grey,
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
